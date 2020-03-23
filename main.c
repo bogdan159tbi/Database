@@ -1,176 +1,157 @@
 #include<stdio.h>
-#include "structures.h"
 #include "DataFunctionality.h"
 #include <string.h>
+#include "STRING.h"
+#include "INT.h"
+#include "FLOAT.h"
 
 #define DELIM " "
 
-void execCmd(char *request,t_db *db)
+
+void creareTabel(char **arg, t_db *db, int elem)
 {
-		char *tok;
-		char *tableName ,*type;
-		t_table *newTable;
-		char *arg[30];
-		int elem = 0;
-		tok = strtok(request," ");
-		while (tok)
-		{				
-			arg[elem] = malloc(MAX_TABLE_NAME_LEN);
-			 if(!arg[elem])
-			 {
-			 	int i;
-			 	for( i = 0;i< elem; i++)
-			 		free(arg[i]);
-			 	deleteDB(db);
-			 	return;
-			 }
-			 strcpy(arg[elem++],tok);
-			 tok = strtok(NULL," ");	
-		}//end while
-		tableName = malloc(sizeof(MAX_TABLE_NAME_LEN));
-		if(!tableName)
-		{
-			deleteDB(db);
-			return;
-		}
-		strcpy(tableName,arg[1]);
-		
-		if(!type)
-		{
-			deleteDB(db);
-			free(tableName);
-			return;
-			// eliberare sir arg
-		}
-		strcpy(type,arg[2]);
-		newTable = createTable(db,tableName);
-		newTable->type = (t_cellType)type;
-		if(!newTable)
-		{
-			printf("nu s a alocat\n");
-			deleteDB(db);
-			return;
-		}
-		newTable->type = (t_cellType)type;
-		int index = 3;
-		for(; index < elem ;index++){
-			insertColumn(newTable,arg[index]);
-		}
+  t_table *t = createTable(db,arg[1]);
+  if(t){
+	if( !strcmp(arg[2],"FLOAT"))
+		t->type = FLOAT;
+	else if (!strcmp(arg[2],"INT"))
+		t->type = INT;
+	else if (!strcmp(arg[2],"STRING"))
+		t->type = STRING;
+	int i;
+	for(i = 3; i < elem ;i++)
+	{
+		insertColumn(t,arg[i]);
+	}
+	}
+}
+ 
+void adaugaValori(t_db *db,char **arg,int elem)
+{
+	t_table *t = db->tables;
+	char *tableName = arg[1];
 
-		//if(newTable->type == STRING)
-			printDB(db,"STRING");
-		//if(newTable->type == INT)
-		//	printDB(db,INT);
-		
-		// pentru adaugare in tabel a valorilor pt fiecare coloana
-		if (!strcmp(arg[0],"ADD"))
-		{
-			int argINT[100];
-			char **argSTRING;	
-			char *tableName = malloc(sizeof(MAX_TABLE_NAME_LEN));
-			if(!tableName)
+	for(; t != NULL ; t = t->next){
+	  if(!strcmp(tableName,t->name))
+		break;
+	}
+	if(!t){
+		printf("Table \"%s\" does not exist \n",tableName);
+		return;
+	}
+
+
+	if (t->type == INT){
+	int *valori = malloc(sizeof(int) * (elem - 2));
+	if(!valori)
+	{
+	 printf("nu s a alocat vectorul int de valori\n");
+     return;
+	}
+	int i;
+	for(i = 0; i < elem - 2;i++)
+		valori[i] = atoi(arg[i+2]);
+		addInt(db,tableName,valori,elem - 2);
+	}
+	else if(t->type == FLOAT)
+	{
+	float *valori = malloc(sizeof(float) * (elem - 2));
+	if(!valori)
+	{
+	 printf("nu s a alocat vectorul int de valori\n");
+     return;
+	}
+	int i;
+	for(i = 0; i < elem - 2;i++)
+		valori[i] = atof(arg[i+2]);
+
+	addFLOAT(db,tableName,valori,elem - 2);
+	}
+	else if(t->type == STRING)
+	{
+		char **argString = malloc(sizeof(char*)*(elem - 2 ));
+		if(!argString)
+			return;
+		int i;
+		for(i = 2; i < elem ; i++){
+			argString[i] = malloc(30);
+			if(!argString[i])
 			{
-				deleteDB(db);
-				return;
+				int j;
+				for(j = 0; j < i; j++)
+					free(argString[i]);
 			}
-			strcpy(tableName,arg[1]);
-			int index ;
-			//find table with tableName
-			t_table *searchTable = db->tables;
-			for(;searchTable != NULL;searchTable = searchTable->next)
-				if (!strcmp(searchTable->name,tableName))
-					break;
-
-			//if(searchTable->type == STRING)
-			
-			for(int i = 2; i < elem ;i++)
-				argSTRING[i-2] = arg[i];
-			     
-			
-			if(searchTable->type == INT)
-				for(int i = 2; i < elem ;i++)
-				
-			for(index = 2; index < elem ;index++)
-				/*if(searchTable->type == STRING)*/addString(db,tableName,argSTRING,elem-2);
-					
-				//else
-				//	addInt(db,tableName,argINT);
-			//if(newTable->type == STRING)
-				printDB(db,"STRING");
-			//if(newTable->type == INT)
-			//	printDB(db,INT);
-		
+			argString[i-2] = arg[i];
 		}
-		if (!strcmp(arg[0],"SEARCH"))
-		{
-			char *colName = malloc(MAX_COLUMN_NAME_LEN);
-			if(!colName)
-			{
-				free(tableName);
-				deleteDB(db);
-				return;
-			}
-			strcpy(colName,arg[2]);
-			// prelucare relatie dintre coloana si valoare data
-			//value arg[4];
-		}
+		addString(db,tableName,argString,elem-2);
+	}
 
-	for(int i = 0;i< elem; i++)
-		 free(arg[i]);
+}
+void findLine(t_db *db,char **arg)
+{
+	t_table *t = db->tables;
+	char *tableName = arg[1];
+	
+	for(; t != NULL ; t = t->next)
+	  if(!strcmp(tableName,t->name))
+		break;
+	if(t->type == STRING)
+		findSTRING(db,tableName,arg[2],arg[4],arg[3]); // 2= nume coloana 4 = valoare 3 = relatie
+	else if(t->type == INT)
+		findINT(db, tableName, arg[2], atoi(arg[4]), arg[3]);
+	else if(t->type == FLOAT)
+		findFLOAT(db, tableName, arg[2], atof(arg[4]), arg[3]);
 
 }
 
 int main()
 {
-	t_db *db = initDB("SCHOOL");
 
-	char request[MAX_CMD_LEN];
-	int size = MAX_CMD_LEN;
-
-	char **relatii;
-	int i;
-	relatii = malloc(sizeof(char*)*6);
-	if(!relatii)
+	FILE *in = fopen("./in/test1.in","rt");
+	if(!in)
 	{
-		deleteDB(db);
+		printf("couldn't open file\n");
 		return 1;
 	}
-	for(i = 0; i < 6; i++)
+	char request[MAX_CMD_LEN];
+	t_db *db;
+	char *tok;
+	char *arg[30];
+	int elem = 0, i;
+	while ( fgets(request,MAX_CMD_LEN,in) != NULL)
 	{
-		relatii[i] = malloc(3);
-		if(!relatii[i])
-		{
-			int j;
-			for(j = 0 ;j < i;j++)
-				free(relatii[j]);
-			free(relatii);
-			return 1;
+		// la fgets se adauga \n la sf liniei automat
+		tok = strtok(request," ");
+		elem = 0;
+		while (tok)
+		{				
+			arg[elem] = malloc(MAX_TABLE_NAME_LEN);
+			 if(!arg[elem])
+			 {
+			 	
+			 	for( i = 0;i< elem; i++)
+			 		free(arg[i]);
+			 	return 1;
+			 }
+			 strcpy(arg[elem++],tok);
+			 tok = strtok(NULL," ");	
 		}
+	if (!strcmp("INIT_DB",arg[0]))
+		db = initDB(arg[1]);
+	if (!strcmp("CREATE",arg[0]))
+		 creareTabel(arg,db,elem);
+	if (!strcmp("ADD",arg[0]))
+		adaugaValori(db,arg,elem);
+	if (!strcmp("PRINT",arg[0]))
+		printTable(db,arg[1]);
+	if (!strcmp("SEARCH",arg[0]))
+		findLine(db,arg);
+		
 	}
-	strcpy(relatii[0],"<");
-	strcpy(relatii[1],"<=");
-	strcpy(relatii[2],">");
-	strcpy(relatii[3],">=");
-	strcpy(relatii[4],"!=");
-	strcpy(relatii[5],"==");
-	/*
-	fgets(request,sizeof(request),stdin);
-	execCmd(request,db);
-	fgets(request,sizeof(request),stdin);
-	execCmd(request,db);
-	*/
-	t_table *t = createTable(db,"Stud");
-	insertColumn(t,"nume");
-	char **val;
-	val = malloc(2*sizeof(char*));
-	val[0] = malloc(30);
-	strcpy(val[0],"pla");
-	addString(db,"Stud",val,1);
-	printDB(db,"STRING");
-	deleteDB(db);
-
-	free(val[0]);
-	free(val);
-	free(relatii);
+	
+	// la sfarsit sa adaug eu Delete DB
+	for(i = 0 ; i < elem ;i++)
+		free(arg[i]);
+	fclose(in);
 	return 0;
 }
