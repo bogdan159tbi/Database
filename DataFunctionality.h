@@ -313,9 +313,9 @@ void printColumns(t_column *columns,FILE *out)
 void printTable(t_db *db,char *tableName,FILE *out)
 {
 	t_table *tb = db->tables;
-	//tableName[strlen(tableName)-1] = '\0';
+	tableName[strlen(tableName)-1] = '\0';
 	for(; tb != NULL; tb = tb->next)
-		if ( !strstr(tb->name,tableName))
+		if ( !strcmp(tb->name,tableName))
 		{	fprintf(out,"TABLE: %s",tableName);
 			printColumns(tb->columns,out);
 			if( tb->type == INT)		
@@ -334,9 +334,9 @@ void printTable(t_db *db,char *tableName,FILE *out)
 		{
 			printf("%s",tb->name);
 		}
-		*/ // nu stiu sigur de ce am pus else aici
+		*/ // nu stiu sigur de ce am pus else aici(ps nu cred ca mai e nev)
 	if(!tb)
-		fprintf(out,"%s doesn't exist\n",tableName);
+		fprintf(out,"Table %s not found in database.\n",tableName);
 }
 void printDB(t_db *db,FILE *out)
 {
@@ -371,6 +371,8 @@ void printDB(t_db *db,FILE *out)
 // caut linie resp 
 //verific daca indepl relatia ceruta
 // eliberez pe rand memoria
+
+// le am implementat deja pt fiecare tip in parte
 
 
 #endif
