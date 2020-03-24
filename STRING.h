@@ -111,7 +111,7 @@ int checkStringLine(t_stringLine *line,int whichColumn,char *value,char *rel)
 //find  if there is any line which has a column with value = value | 
 // and matches the relation found in rel
 
-void findSTRING(t_db *db,char *tableName,char *columnName,char *value,char *rel)
+void findSTRING(t_db *db,char *tableName,char *columnName,char *value,char *rel,FILE *out)
 {
 	t_table *t = db->tables;
 
@@ -129,19 +129,19 @@ void findSTRING(t_db *db,char *tableName,char *columnName,char *value,char *rel)
 			t_stringLine *lin = t->lines;
 			for(; lin != NULL ;lin = lin->next)
 				if (checkStringLine(lin,nr,value,rel))
-				 {	printf("TABLE: %s\n",tableName);
-					printColumns(col);
-				 	printStringLines(lin);
+				 {	fprintf(out,"TABLE: %s\n",tableName);
+					printColumns(col,out);
+				 	printStringLines(lin,out);
 				 }
 			}
 	else
-		printf("Table \"%s\" does not contain column \"%s\" \n",tableName,columnName);
+		fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
 	}
 }
 
 
 // free line that respects the condition found in rel
-
+/*
 void deleteStringLine(t_db *db,char *tableName,char *columnName,char *val,char *rel)
 {
 t_table *t = db->tables;
@@ -164,6 +164,42 @@ t_table *t = db->tables;
 			}
 		 }	
 
+}
+*/
+
+void deleteStringLine(t_table *table,char *colName,char *rel,char *val,FILE *o)
+{
+int nrColumn = 0;
+
+//verifica existenta coloanei si indicele sau in lista de coloane
+t_column *c = table->columns;
+for(; c != NULL; c = c->next,nrColumn++)
+	if (!strcmp(c->name,colName))
+		break;
+if( !c){
+	fprintf(o,"Table \"%s\" does not contain column \"%s\".\n",table->name,colName);
+	return;
+}
+//gaseste linie
+t_stringLine *lin = table->lines ,*ultim = NULL;
+for( ; lin != NULL; lin = lin->next)
+	if(checkStringLine(lin,nrColumn,val,rel))
+		break;
+if(lin == NULL)
+	return;//daca nu exista vreo linie cu valorea ceruta
+
+//refa legaturile in functie de pozitia liniei in lista de linii(urm)
+if(!ultim){
+	t_stringLine *firstLine = table->lines;
+	firstLine = firstLine->next;
+	table->lines = firstLine;
+}
+else
+	ultim->next = lin->next;
+//delete celule de tip float
+deleteStringCell(lin->cells);
+//elibereaza linie
+free(lin);
 }
 
 #endif

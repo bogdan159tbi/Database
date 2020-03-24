@@ -1,4 +1,4 @@
-#include<stdio.h>
+#include <stdio.h>
 #include "DataFunctionality.h"
 #include <string.h>
 #include "STRING.h"
@@ -8,9 +8,9 @@
 #define DELIM " "
 
 
-void creareTabel(char **arg, t_db *db, int elem)
+void creareTabel(char **arg, t_db *db, int elem,FILE *out)
 {
-  t_table *t = createTable(db,arg[1]);
+  t_table *t = createTable(db,arg[1],out);
   if(t){
 	if( !strcmp(arg[2],"FLOAT"))
 		t->type = FLOAT;
@@ -18,15 +18,16 @@ void creareTabel(char **arg, t_db *db, int elem)
 		t->type = INT;
 	else if (!strcmp(arg[2],"STRING"))
 		t->type = STRING;
+	else
+		fprintf(out,"Unknown data type\n");
 	int i;
 	for(i = 3; i < elem ;i++)
-	{
-		insertColumn(t,arg[i]);
-	}
+	 	insertColumn(t,arg[i],out);
+	
 	}
 }
  
-void adaugaValori(t_db *db,char **arg,int elem)
+void adaugaValori(t_db *db,char **arg,int elem,FILE *out)
 {
 	t_table *t = db->tables;
 	char *tableName = arg[1];
@@ -36,7 +37,7 @@ void adaugaValori(t_db *db,char **arg,int elem)
 		break;
 	}
 	if(!t){
-		printf("Table \"%s\" does not exist \n",tableName);
+		fprintf(out,"Table \"%s\" does not exist \n",tableName);
 		return;
 	}
 
@@ -45,7 +46,7 @@ void adaugaValori(t_db *db,char **arg,int elem)
 	int *valori = malloc(sizeof(int) * (elem - 2));
 	if(!valori)
 	{
-	 printf("nu s a alocat vectorul int de valori\n");
+	 fprintf(out,"nu s a alocat vectorul int de valori\n");
      return;
 	}
 	int i;
@@ -58,14 +59,14 @@ void adaugaValori(t_db *db,char **arg,int elem)
 	float *valori = malloc(sizeof(float) * (elem - 2));
 	if(!valori)
 	{
-	 printf("nu s a alocat vectorul int de valori\n");
+	 fprintf(out,"nu s a alocat vectorul int de valori\n");
      return;
 	}
 	int i;
 	for(i = 0; i < elem - 2;i++)
 		valori[i] = atof(arg[i+2]);
 
-	addFLOAT(db,tableName,valori,elem - 2);
+	addFLOAT(db,tableName,valori,elem - 2,out);
 	}
 	else if(t->type == STRING)
 	{
@@ -85,9 +86,11 @@ void adaugaValori(t_db *db,char **arg,int elem)
 		}
 		addString(db,tableName,argString,elem-2);
 	}
+	else
+		fprintf(out,"Unknown data type\n");
 
 }
-void findLine(t_db *db,char **arg)
+void findLine(t_db *db,char **arg,FILE *out)
 {
 	t_table *t = db->tables;
 	char *tableName = arg[1];
@@ -96,21 +99,62 @@ void findLine(t_db *db,char **arg)
 	  if(!strcmp(tableName,t->name))
 		break;
 	if(t->type == STRING)
-		findSTRING(db,tableName,arg[2],arg[4],arg[3]); // 2= nume coloana 4 = valoare 3 = relatie
+		// 2= nume coloana 4 = valoare 3 = relatie
+		findSTRING(db,tableName,arg[2],arg[4],arg[3],out); 
 	else if(t->type == INT)
-		findINT(db, tableName, arg[2], atoi(arg[4]), arg[3]);
+		findINT(db, tableName, arg[2], atoi(arg[4]), arg[3],out);
 	else if(t->type == FLOAT)
-		findFLOAT(db, tableName, arg[2], atof(arg[4]), arg[3]);
+		findFLOAT(db, tableName, arg[2], atof(arg[4]), arg[3],out);
+	else 
+		fprintf(out,"unknown data type\n");
 
+}
+
+void stergeTable(t_db *db, char *tableName,FILE *out)
+{
+	t_table *t = db->tables;
+	for( ; t != NULL ; t = t->next)
+		if (!strcmp(t->name,tableName))
+			break;
+	if(t)
+	   deleteTable(t);
+	else
+		fprintf(out,"Table \"%s\" not found in database\n",tableName);
+	
+}
+void stergLin(t_db *db,char *tabName,char *colName,char *rel,char *val,FILE *o)
+{
+	t_table *table = db->tables;
+
+	for( ;table != NULL; table = table->next)
+		if (!strcmp(tabName,table->name))
+			break;
+	if(table)
+	{
+		if(table->type == INT)
+			deleteIntLine(table,colName,rel,val,o);//sa convertesc vectorul de valori in int
+		else if(table->type == FLOAT)
+			deleteFloatLine(table,colName,rel,val,o);//sa convertesc valorile in float 
+		else if(table->type == STRING)
+			deleteStringLine(table,colName,rel,val,o);
+	}
+	else
+	  fprintf(o,"Table \"%s\" not found in database.\n",tabName);
 }
 
 int main()
 {
 
-	FILE *in = fopen("./in/test1.in","rt");
+	FILE *in = fopen("./in/test30.in","rt");
+	FILE *out = fopen("./out/test30.out","wt");
 	if(!in)
 	{
 		printf("couldn't open file\n");
+		return 1;
+	}
+	if(!out)
+	{
+		printf("couldn't open file out\n");
 		return 1;
 	}
 	char request[MAX_CMD_LEN];
@@ -136,18 +180,31 @@ int main()
 			 strcpy(arg[elem++],tok);
 			 tok = strtok(NULL," ");	
 		}
+	if(elem == 1)
+		arg[0][strlen(arg[0])-1] = '\0';
 	if (!strcmp("INIT_DB",arg[0]))
-		db = initDB(arg[1]);
+		db = initDB(arg[1],out);
 	if (!strcmp("CREATE",arg[0]))
-		 creareTabel(arg,db,elem);
+		 creareTabel(arg, db, elem, out);
 	if (!strcmp("ADD",arg[0]))
-		adaugaValori(db,arg,elem);
+		adaugaValori(db,arg,elem,out);
 	if (!strcmp("PRINT",arg[0]))
-		printTable(db,arg[1]);
+		printTable(db,arg[1],out);
 	if (!strcmp("SEARCH",arg[0]))
-		findLine(db,arg);
-		
+		findLine(db,arg,out);
+    if (!strcmp("DELETE",arg[0]))
+		{
+		if (elem == 2)
+		  stergeTable(db,arg[0],out);
+		else if (elem ==  1)
+		   deleteDB(db);
+		else if ( elem > 2)
+		  stergLin(db,arg[1],arg[2],arg[3],arg[4],out);
+		}
+	if (!strcmp("PRINT_DB",arg[0]))
+		printDB(db,out);
 	}
+
 	
 	// la sfarsit sa adaug eu Delete DB
 	for(i = 0 ; i < elem ;i++)

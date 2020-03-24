@@ -17,12 +17,12 @@ t_floatCell *alocFloatCell(float value)
 }
 
 // insert new float line with certain values knowing the nr of columns
-void insertFloatVal(t_table *table,float *values,int nrColumns)
+void insertFloatVal(t_table *table,float *values,int nrColumns,FILE *out)
 {
 	t_floatLine *line = malloc(sizeof(t_floatLine));
 	if(!line)
 	{
-		printf("line didn t alocate\n");
+		fprintf(out,"line didn t alocate\n");
 		return;
 	}
 
@@ -62,7 +62,7 @@ void insertFloatVal(t_table *table,float *values,int nrColumns)
 
 //add new values in a certain table
 
-void addFLOAT(t_db *db,char *tableName,float *val,int coloane)
+void addFLOAT(t_db *db,char *tableName,float *val,int coloane,FILE *out)
 {
 	//check if the table already exists
 	t_table *tables = db->tables;
@@ -73,7 +73,7 @@ void addFLOAT(t_db *db,char *tableName,float *val,int coloane)
 			if (!strcmp(tableName,tables->name))
 			break;
 	}
-	insertFloatVal(tables,val,coloane);
+	insertFloatVal(tables,val,coloane,out);
 }
 
 //check a line if it matches the column's values
@@ -105,7 +105,7 @@ int checkFloatLine(t_floatLine *line,int whichColumn,float val,char *rel)
 	return 0;
 }
 
-void findFLOAT(t_db *db,char *tableName,char *columnName,float columnValue,char *rel)
+void findFLOAT(t_db *db,char *tableName,char *columnName,float columnValue,char *rel,FILE *out)
 {
 	int nrColumn = 0;
 	int ok = 0;
@@ -125,23 +125,59 @@ void findFLOAT(t_db *db,char *tableName,char *columnName,float columnValue,char 
 			for(; l != NULL; l = l->next)
 				if(checkFloatLine(l,nrColumn,columnValue,rel))
 				{	ok = 1;
-					printf("TABLE: %s\n",tableName);
-					printColumns(c);
-					printFloatLines(l);
+					fprintf(out,"TABLE: %s\n",tableName);
+					printColumns(c,out);
+					printFloatLines(l,out);
 					break;
 				}
+
 		}
-		else
-			printf("Table \"%s\" does not contain column \"%s\" \n",tableName,columnName);
-	}
-	if(!ok)
-	{
-		printf("TABLE: %s\n",tableName);
-		//afisare linii ----- fara valori
+		else{
+			fprintf(out,"TABLE: %s\n",tableName);
+			printColumns(t->columns,out);
+			fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
+		}
 	}
 	
 }
 
-//free line's columns
+void deleteFloatLine(t_table *table,char *colName,char *rel,char *val,FILE *o)
+{
+int nrColumn = 0;
+//converteste valoarea celulei in float
+float value = atof(val);
+
+//verifica existenta coloanei si indicele sau in lista de coloane
+t_column *c = table->columns;
+for(; c != NULL; c = c->next,nrColumn++)
+	if (!strcmp(c->name,colName))
+		break;
+if( !c){
+	fprintf(o,"Table \"%s\" does not contain column \"%s\".\n",table->name,colName);
+	return;
+}
+//gaseste linie
+t_floatLine *lin = table->lines ,*ultim = NULL;
+for( ; lin != NULL; lin = lin->next)
+	if(checkFloatLine(lin,nrColumn,value,rel))
+		break;
+if(lin == NULL)
+	return;//daca nu exista vreo linie cu valorea ceruta
+
+//refa legaturile in functie de pozitia liniei in lista de linii(urm)
+if(!ultim){
+	t_floatLine *firstLine = table->lines;
+	firstLine = firstLine->next;
+	table->lines = firstLine;
+}
+else
+	ultim->next = lin->next;
+//delete celule de tip float
+deleteFloatCell(lin->cells);
+//elibereaza linie
+free(lin);
+
+}
+
 
 #endif

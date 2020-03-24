@@ -109,7 +109,7 @@ int checkIntLine(t_intLine *line,int whichColumn,int val,char *rel)
 	return 0;
 }
 
-void findINT(t_db *db,char *tableName,char *columnName,int columnValue,char *rel)
+void findINT(t_db *db,char *tableName,char *columnName,int columnValue,char *rel,FILE *out)
 {
 	int nrColumn = 0;
 	t_table *t;
@@ -128,22 +128,54 @@ void findINT(t_db *db,char *tableName,char *columnName,int columnValue,char *rel
 			for(; l != NULL; l = l->next)
 				if(checkIntLine(l,nrColumn,columnValue,rel))
 				{
-					printf("TABLE: %s\n",tableName);
-					printColumns(c);
-					printIntLines(l);
+					fprintf(out,"TABLE: %s\n",tableName);
+					printColumns(c,out);
+					printIntLines(l,out);
 					break;
 				}
 		}
 		else
-		printf("Table \"%s\" does not contain column \"%s\" \n",tableName,columnName);
+		fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
 
 	}
 	
 }
 
-void deleteIntLine()
+void deleteIntLine(t_table *table,char *colName,char *rel,char *val,FILE *o)
 {
-	
+int nrColumn = 0;
+//converteste valoarea celulei in int
+int value = atoi(val);
+
+//verifica existenta coloanei si indicele sau in lista de coloane
+t_column *c = table->columns;
+for(; c != NULL; c = c->next,nrColumn++)
+	if (!strcmp(c->name,colName))
+		break;
+if( !c){
+	fprintf(o,"Table \"%s\" does not contain column \"%s\".\n",table->name,colName);
+	return;
+}
+//gaseste linie
+t_intLine *lin = table->lines ,*ultim = NULL;
+for( ; lin != NULL; lin = lin->next)
+	if(checkIntLine(lin,nrColumn,value,rel))
+		break;
+if(lin == NULL)
+	return;//daca nu exista vreo linie cu valorea ceruta
+
+//refa legaturile in functie de pozitia liniei in lista de linii(urm)
+if(!ultim){
+	t_intLine *firstLine = table->lines;
+	firstLine = firstLine->next;
+	table->lines = firstLine;
+}
+else
+	ultim->next = lin->next;
+//delete celule de tip float
+deleteIntCell(lin->cells);
+//elibereaza linie
+free(lin);
 }
 
 #endif

@@ -5,7 +5,7 @@
 #define MAX_TABLE_NAME_LEN  30
 #define MAX_DB_NAME_LEN     30
 #define MAX_CMD_LEN         300
-
+#define MAX_COLUMNS 		10
 // int
 typedef struct intCell {
 	int    value;
