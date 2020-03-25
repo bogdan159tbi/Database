@@ -85,16 +85,16 @@ int checkStringLine(t_stringLine *line,int whichColumn,char *value,char *rel)
 	int coloana = 0;
 	for(; cel != NULL ,coloana <= whichColumn; cel = cel->next,coloana++)
 	 {if(!strcmp(rel,"<"))
-		if (strcmp(value,cel->value) == 1)
+		if (strcmp(value,cel->value) == -1)
 			return 1;
 	  if(!strcmp(rel,"<="))
 		if (strcmp(value,cel->value) == 1 || strcmp(value,cel->value) == 0)
 			return 1;
 	  if(!strcmp(rel,">"))
-		if (strcmp(value,cel->value) == -1)
+		if (strcmp(value,cel->value) == 11)
 			return 1;
 	  if(!strcmp(rel,">="))
-		if (strcmp(value,cel->value) == -1 || strcmp(value,cel->value) == 0)
+		if (strcmp(value,cel->value) == 1 || strcmp(value,cel->value) == 0)
 			return 1;
 	  if(!strcmp(rel,"!="))
 		if (strcmp(value,cel->value) != 0)
@@ -135,7 +135,7 @@ void findSTRING(t_db *db,char *tableName,char *columnName,char *value,char *rel,
 				 }
 			}
 	else
-		fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
+		fprintf(out,"Table \"%s\" does not contain column \"%s\".\n",tableName,columnName);
 	}
 }
 
@@ -197,7 +197,7 @@ if(!ultim){
 else
 	ultim->next = lin->next;
 //delete celule de tip float
-deleteStringCell(lin->cells);
+deleteStringCell(&lin->cells);
 //elibereaza linie
 free(lin);
 }

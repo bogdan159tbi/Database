@@ -83,16 +83,16 @@ int checkFloatLine(t_floatLine *line,int whichColumn,float val,char *rel)
 	for(int column = 0; cell != NULL,column <= whichColumn; cell = cell->next,column++)
 	{
 	  if(!strcmp(rel,"<"))
-	  	if(val < cell->value)
+	  	if(val > cell->value)
 	  		return 1;
 	  if(!strcmp(rel,"<="))
-	  	if(val < cell->value || val == cell->value)
+	  	if(val >= cell->value)
 	  		return 1;
    	  if(!strcmp(rel,">"))
-   	  	if(val > cell->value)
+   	  	if(val < cell->value)
    	  		return 1;
    	  if(!strcmp(rel,">="))
-   	  	if(val >= cell->value)
+   	  	if(val <= cell->value)
    	  		return 1;
    	  if(!strcmp(rel,"!="))
    	  	if(val != cell->value)
@@ -135,7 +135,7 @@ void findFLOAT(t_db *db,char *tableName,char *columnName,float columnValue,char 
 		else{
 			fprintf(out,"TABLE: %s\n",tableName);
 			printColumns(t->columns,out);
-			fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
+			fprintf(out,"Table \"%s\" does not contain column \"%s\".\n",tableName,columnName);
 		}
 	}
 	
@@ -173,7 +173,7 @@ if(!ultim){
 else
 	ultim->next = lin->next;
 //delete celule de tip float
-deleteFloatCell(lin->cells);
+deleteFloatCell(&lin->cells);
 //elibereaza linie
 free(lin);
 

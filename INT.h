@@ -87,17 +87,19 @@ int checkIntLine(t_intLine *line,int whichColumn,int val,char *rel)
 	for(int column = 0; cell != NULL,column <= whichColumn; cell = cell->next,column++)
 	{
 	  if(!strcmp(rel,"<"))
-	  	if(val < cell->value)
+	  	if(val > cell->value)
 	  		return 1;
 	  if(!strcmp(rel,"<="))
-	  	if(val < cell->value || val == cell->value)
-	  		return 1;
+	  	if(val >=  cell->value)
+	  	   return 1;
    	  if(!strcmp(rel,">"))
-   	  	if(val > cell->value)
+   	  	if(val < cell->value)
    	  		return 1;
-   	  if(!strcmp(rel,">="))
-   	  	if(val >= cell->value)
+   	  if(!strcmp(rel,">=")){
+   	  	if(val <= cell->value)
    	  		return 1;
+
+   	  }
    	  if(!strcmp(rel,"!="))
    	  	if(val != cell->value)
    	  		return 1;
@@ -126,16 +128,20 @@ void findINT(t_db *db,char *tableName,char *columnName,int columnValue,char *rel
 		{
 			t_intLine *l = t->lines;
 			for(; l != NULL; l = l->next)
-				if(checkIntLine(l,nrColumn,columnValue,rel))
+			{
+				if(checkIntLine(l,nrColumn,columnValue,rel) == 1)
 				{
 					fprintf(out,"TABLE: %s\n",tableName);
 					printColumns(c,out);
 					printIntLines(l,out);
-					break;
+					
 				}
+
+			}
+
 		}
 		else
-		fprintf(out,"Table \"%s\" does not contains column \"%s\".\n",tableName,columnName);
+		fprintf(out,"Table \"%s\" does not contain column \"%s\".\n",tableName,columnName);
 
 	}
 	
@@ -173,7 +179,7 @@ if(!ultim){
 else
 	ultim->next = lin->next;
 //delete celule de tip float
-deleteIntCell(lin->cells);
+deleteIntCell(&lin->cells);
 //elibereaza linie
 free(lin);
 }

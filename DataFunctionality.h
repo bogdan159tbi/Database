@@ -72,100 +72,115 @@ t_table *initTable(FILE *out)
 }
 
 
-void deleteColumns(t_column *columns)
+void deleteColumns(t_column **col)
 {
+	t_column *columns = *col;
 	if(columns)
-		{deleteColumns(columns->next);
+		{deleteColumns(&columns->next);
 		free(columns);
 		}
 	if(columns == NULL)
 		return;
 }
 
-void deleteIntCell(t_intCell *cells)
-{
+void deleteIntCell(t_intCell **c)
+{	t_intCell *cells = *c;
 	if(cells)
 	{
-		deleteIntCell(cells->next);
+		deleteIntCell(&cells->next);
 		free(cells);
 	}
 	else
 		return;
 }
-void deleteInt(t_intLine *lines)
+void deleteInt(t_intLine **lin)
 {
-
+    t_intLine *lines = *lin;
 	if(lines)
-		{deleteInt(lines->next);
+		{deleteInt(&lines->next);
 		 t_intCell *celule = lines->cells;
-		 deleteIntCell(celule);
+		 deleteIntCell(&celule);
+		 free(lines);
 		}
 	else
 		return;
 }
 
-void deleteStringCell(t_stringCell *cells)
-{
+void deleteStringCell(t_stringCell **c)
+{	
+	t_stringCell *cells = *c;
 	if(cells)
 	{
-		deleteStringCell(cells->next);
+		deleteStringCell(&cells->next);
 		free(cells);
 	}
 	else
 		return;
 }
-void deleteString(t_stringLine *lines)
+void deleteString(t_stringLine **lin)
 {
+	t_stringLine *lines = *lin;
 	if(lines)
-		{deleteString(lines->next);
+		{deleteString(&lines->next);
 		 t_stringCell *celule = lines->cells;
-		 deleteStringCell(celule);
+		 deleteStringCell(&celule);
+		 free(lines);
 		}
 	else
 		return;
 
 }
 
-void deleteFloatCell(t_floatCell *celule)
+void deleteFloatCell(t_floatCell **cel)
 {
+	t_floatCell *celule = *cel;
 	if(celule)
-		{deleteFloatCell(celule->next);
+		{deleteFloatCell(&celule->next);
 		 free(celule);
+		
 		}
 	else
 		return;
 }
 
-void deleteFloat(t_floatLine *lines)
+void deleteFloat(t_floatLine **lin)
 {
+	t_floatLine *lines = *lin;
 	if(lines)
 	{
-		deleteFloat(lines->next);
+		deleteFloat(&lines->next);
 		t_floatCell *celule = lines->cells;
-		deleteFloatCell(celule);
+		deleteFloatCell(&celule);
+		free(lines);
 	}
 	else
 		return;
 }
 
-void deleteTable(t_table *table)
+void deleteTable(t_table **t)
 {
+	t_table *table = *t;
 	if(table){
 		if(table->type == INT)
-			deleteInt(table->lines);
-		
-		else if(table->type == STRING)
-			deleteString(table->lines);
+			{	t_intLine *line = table->lines;
+				deleteInt(&line);
+			}
+		else if(table->type == STRING){
+			t_stringLine *line = table->lines;
+			deleteString(&line);
+		}
 		//mai am pt float
-		else if(table->type == FLOAT)
-			deleteFloat(table->lines);
+		else if(table->type == FLOAT){
+			t_floatLine *line = table->lines;
+			deleteFloat(&line);
+		}
 	 	
-	 	deleteColumns(table->columns);
+	 	deleteColumns(&(table->columns));
 		}
 }
 void deleteDB(t_db *db)
 {
-	deleteTable(db->tables);
+	deleteTable(&db->tables);
 	free(db);
 	// opreste executia programului
 }
@@ -173,6 +188,7 @@ void deleteDB(t_db *db)
 /*insereaza coloane la sfarsit */
 t_column *insertColumn(t_table *table,char *colName,FILE *out)
 {	if(!table->columns){
+	//colName[strlen(colName) - 1 ] = '\0';
 	table->columns = malloc(sizeof(t_column));
 	if(!table->columns)
 	{
@@ -222,14 +238,14 @@ t_table *createTable(t_db *db,char *tableName,FILE *out/*tipul pe care l las int
 		for(; tables != NULL ; tables = tables->next)
 			if (!strcmp(tableName,tables->name))
 			{
-				fprintf(out,"%s already exists\n",tableName);
+				fprintf(out,"%s already exists.\n",tableName);
 				return NULL;
 			}
 		for(tables = db->tables; tables->next != NULL; tables = tables->next);
 
 		t_table *aux = initTable(out);
 		if(!aux)
-		{	deleteTable(db->tables);
+		{	deleteTable(&db->tables);
 			free(db);
 			return NULL;
 		}
@@ -245,6 +261,30 @@ t_table *createTable(t_db *db,char *tableName,FILE *out/*tipul pe care l las int
 /*Data Query */
 // print whole Database
 
+int floatCellLen(float value)
+{
+	int len  = 0;
+	int value2 = value;
+	while(value2)
+	{
+		len++;
+		value2 /= 10;
+	}
+	if(value2 == 0)
+		return 1;
+	return len;
+}
+int intCellLen(int value)
+{
+	int len  = 0;
+	while(value)
+	{
+		len++;
+		value /= 10;
+	}
+	return len;
+	
+}
 
 void printStringCells(t_stringCell *cells,FILE *out)
 {	
@@ -264,8 +304,11 @@ void printStringLines(t_stringLine *lines,FILE *out)
 }
 void printFloatCells(t_floatCell *cells,FILE *out)
 {
-	for( ;cells != NULL ; cells = cells->next)
+	for( ;cells != NULL ; cells = cells->next){
 		fprintf(out,"%f ",cells->value);
+		for(int j = 0;j < MAX_COLUMN_NAME_LEN  - floatCellLen(cells->value) - 7 ; j++)
+			fprintf(out," ");
+	}
 	fprintf(out,"\n");
 
 }
@@ -277,8 +320,11 @@ void printFloatLines(t_floatLine *lines,FILE *out)
 
 void printIntCells(t_intCell *cells,FILE *out)
 {
-	for(;cells != NULL; cells = cells->next)
+	for(;cells != NULL; cells = cells->next){
 		fprintf(out,"%d",cells->value);
+		for(int j = 0;j < MAX_COLUMN_NAME_LEN  - intCellLen(cells->value) ; j++)
+			fprintf(out," ");
+	}
 	fprintf(out,"\n");
 }
 
@@ -316,7 +362,7 @@ void printTable(t_db *db,char *tableName,FILE *out)
 	tableName[strlen(tableName)-1] = '\0';
 	for(; tb != NULL; tb = tb->next)
 		if ( !strcmp(tb->name,tableName))
-		{	fprintf(out,"TABLE: %s",tableName);
+		{	fprintf(out,"TABLE: %s\n",tableName);
 			printColumns(tb->columns,out);
 			if( tb->type == INT)		
 				printIntLines(tb->lines,out);
@@ -326,7 +372,7 @@ void printTable(t_db *db,char *tableName,FILE *out)
 			else if ( tb->type == FLOAT)
 				printFloatLines(tb->lines,out);
 			else
-				fprintf(out,"unknown data type\n");
+				fprintf(out,"Unknown data type.\n");
 			break;
 		}
 		/*

@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include "DataFunctionality.h"
 #include <string.h>
+#include <stdlib.h>
 #include "STRING.h"
 #include "INT.h"
 #include "FLOAT.h"
 
 #define DELIM " "
-
+#define MAX_TESTS 79
 
 void creareTabel(char **arg, t_db *db, int elem,FILE *out)
 {
@@ -19,11 +20,12 @@ void creareTabel(char **arg, t_db *db, int elem,FILE *out)
 	else if (!strcmp(arg[2],"STRING"))
 		t->type = STRING;
 	else
-		fprintf(out,"Unknown data type\n");
+		fprintf(out,"Unknown data type.\n");
 	int i;
 	for(i = 3; i < elem ;i++)
 	 	insertColumn(t,arg[i],out);
-	
+
+		
 	}
 }
  
@@ -37,7 +39,7 @@ void adaugaValori(t_db *db,char **arg,int elem,FILE *out)
 		break;
 	}
 	if(!t){
-		fprintf(out,"Table \"%s\" does not exist \n",tableName);
+		fprintf(out,"Table \"%s\" does not exist.\n",tableName);
 		return;
 	}
 
@@ -87,14 +89,14 @@ void adaugaValori(t_db *db,char **arg,int elem,FILE *out)
 		addString(db,tableName,argString,elem-2);
 	}
 	else
-		fprintf(out,"Unknown data type\n");
+		fprintf(out,"Unknown data type.\n");
 
 }
 void findLine(t_db *db,char **arg,FILE *out)
 {
 	t_table *t = db->tables;
 	char *tableName = arg[1];
-	
+
 	for(; t != NULL ; t = t->next)
 	  if(!strcmp(tableName,t->name))
 		break;
@@ -106,20 +108,32 @@ void findLine(t_db *db,char **arg,FILE *out)
 	else if(t->type == FLOAT)
 		findFLOAT(db, tableName, arg[2], atof(arg[4]), arg[3],out);
 	else 
-		fprintf(out,"unknown data type\n");
+		fprintf(out,"Unknown data type.\n");
 
 }
 
-void stergeTable(t_db *db, char *tableName,FILE *out)
+void stergeTable(t_db **db, char *tableName,FILE *out)
 {
-	t_table *t = db->tables;
-	for( ; t != NULL ; t = t->next)
-		if (!strcmp(t->name,tableName))
+	t_table *t = (*db)->tables,*ultim = NULL;
+	//tableName[strlen(tableName) - 1 ] = '\0';
+	for( ; t != NULL ; ultim = t,t = t->next)
+		if (!strcmp(t->name,tableName)){
+			printf("%s\n",tableName);
 			break;
-	if(t)
-	   deleteTable(t);
-	else
-		fprintf(out,"Table \"%s\" not found in database\n",tableName);
+		}
+	if(t){
+	   t_table *aux = t;
+	   if(t == (*db)->tables)
+	   	(*db)->tables = (*db)->tables->next;
+	   else
+	   	ultim->next = t->next;
+	   
+	   deleteTable(&aux);
+	}
+	else{
+		tableName[ strlen(tableName) - 1 ] = '\0'; 
+		fprintf(out,"Table \"%s\" not found in database.\n",tableName);
+	}
 	
 }
 void stergLin(t_db *db,char *tabName,char *colName,char *rel,char *val,FILE *o)
@@ -138,15 +152,23 @@ void stergLin(t_db *db,char *tabName,char *colName,char *rel,char *val,FILE *o)
 		else if(table->type == STRING)
 			deleteStringLine(table,colName,rel,val,o);
 	}
-	else
+	else{
+		tabName[strlen(tabName) - 1 ] = '\0';
 	  fprintf(o,"Table \"%s\" not found in database.\n",tabName);
+	}
 }
+
 
 int main()
 {
+	char request[MAX_CMD_LEN];
+	t_db *db;
+	char *tok;
+	char *arg[30];
+	int elem = 0, i;
 
-	FILE *in = fopen("./in/test30.in","rt");
-	FILE *out = fopen("./out/test30.out","wt");
+	FILE *in = fopen("./in/test42.in","rt");
+	FILE *out = fopen("./out/test42.out","wt");
 	if(!in)
 	{
 		printf("couldn't open file\n");
@@ -157,11 +179,7 @@ int main()
 		printf("couldn't open file out\n");
 		return 1;
 	}
-	char request[MAX_CMD_LEN];
-	t_db *db;
-	char *tok;
-	char *arg[30];
-	int elem = 0, i;
+	
 	while ( fgets(request,MAX_CMD_LEN,in) != NULL)
 	{
 		// la fgets se adauga \n la sf liniei automat
@@ -180,7 +198,7 @@ int main()
 			 strcpy(arg[elem++],tok);
 			 tok = strtok(NULL," ");	
 		}
-	if(elem == 1)
+	if (elem == 1)
 		arg[0][strlen(arg[0])-1] = '\0';
 	if (!strcmp("INIT_DB",arg[0]))
 		db = initDB(arg[1],out);
@@ -188,14 +206,19 @@ int main()
 		 creareTabel(arg, db, elem, out);
 	if (!strcmp("ADD",arg[0]))
 		adaugaValori(db,arg,elem,out);
-	if (!strcmp("PRINT",arg[0]))
+	if (!strcmp("PRINT",arg[0])){
 		printTable(db,arg[1],out);
+		fprintf(out,"\n");
+	}
 	if (!strcmp("SEARCH",arg[0]))
 		findLine(db,arg,out);
     if (!strcmp("DELETE",arg[0]))
 		{
-		if (elem == 2)
-		  stergeTable(db,arg[0],out);
+		if (elem == 2){
+		  arg[1][strlen(arg[1]) - 1 ] = '\0';
+		  stergeTable(&db,arg[1],out);
+		}
+		
 		else if (elem ==  1)
 		   deleteDB(db);
 		else if ( elem > 2)
@@ -204,11 +227,14 @@ int main()
 	if (!strcmp("PRINT_DB",arg[0]))
 		printDB(db,out);
 	}
+	fclose(in);
+	fclose(out);
 
-	
+		
 	// la sfarsit sa adaug eu Delete DB
 	for(i = 0 ; i < elem ;i++)
 		free(arg[i]);
-	fclose(in);
+
+
 	return 0;
 }
